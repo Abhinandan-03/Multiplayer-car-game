@@ -3,8 +3,22 @@ import threading
 import json
 import pygame
 import time
+import array
+import math 
 
 TCP_PORT = 50000
+
+def make_beep(freq=440, duration_ms=100, volume=0.3):
+    sample_rate = 44100
+    n_samples = int(sample_rate * duration_ms / 1000)
+    buf = array.array("h")
+
+    for i in range(n_samples):
+        t = i / sample_rate
+        val = int(volume * 32767 * math.sin(2 * math.pi * freq * t))
+        buf.append(val)
+
+    return pygame.mixer.Sound(buffer=buf)
 
 
 # ---------------------- CLIENT ----------------------
@@ -51,31 +65,50 @@ class Client:
                 break
 
 
-# ---------------------- FAKE SEARCH THREAD ----------------------
 def search_and_connect(client):
     time.sleep(2)  # simulate searching
     client.connect("127.0.0.1")  # change IP if server is remote
 
 
-# ---------------------- PYGAME SETUP ----------------------
 pygame.init()
+pygame.mixer.init(frequency=44100, size=-16, channels=1)
 screen = pygame.display.set_mode((1000, 700))
 pygame.display.set_caption("PatchFest Multiplayer Racer")
 clock = pygame.time.Clock()
 font = pygame.font.SysFont("Arial", 24)
 
-client = Client()
+move_sound = make_beep(freq=300, duration_ms=60, volume=0.25)
+connect_sound = make_beep(freq=750, duration_ms=200, volume=0.4)
 
-# 🔥 Start search -> connect flow
+client = Client()
 threading.Thread(target=search_and_connect, args=(client,), daemon=True).start()
 
 
-# ---------------------- MAIN LOOP ----------------------
 running = True
 while running:
+    moved = False
+    
     for e in pygame.event.get():
         if e.type == pygame.QUIT:
             running = False
+
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_LEFT]:
+        moved = True
+    if keys[pygame.K_RIGHT]:
+        moved = True
+    if keys[pygame.K_UP]:
+        moved = True
+    if keys[pygame.K_DOWN]:
+        moved = True
+
+    if moved:
+        move_sound.play()
+
+    # Play connect sound ONCE
+    if client.connected and not client.played_connect_sound:
+        connect_sound.play()
+        client.played_connect_sound = True
 
     screen.fill((30, 30, 30))
 
@@ -91,7 +124,6 @@ while running:
     clock.tick(60)
 
 
-# ---------------------- CLEANUP ----------------------
 client.running = False
 pygame.quit()
 
