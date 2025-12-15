@@ -97,8 +97,18 @@ while running:
     for p in client.players:
         pygame.draw.rect(screen, (0,255,0), (p["x"], p["y"], 40, 40))
 
+    #fps counter
+    fps=int(clock.get_fps())
+    font=pygame.font.SysFont("Arial",30)
+    fps_text=font.render(f"FPS:{fps}",True,(255,255,255))
+    
+    screen.blit(fps_text,(10,10))
+
+
     pygame.display.flip()
     clock.tick(60)
+
+
 
 pygame.quit()
 client.running = False
